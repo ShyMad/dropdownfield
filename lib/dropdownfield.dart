@@ -140,8 +140,6 @@ class DropDownField extends FormField<String> {
                                 !items.contains(newValue))
                               return 'Invalid value in this field!';
                           }
-
-                          return null;
                         },
                         onSaved: setter,
                         enabled: enabled,
