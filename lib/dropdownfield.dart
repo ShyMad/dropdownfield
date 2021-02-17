@@ -54,15 +54,12 @@ class DropDownField extends FormField<String> {
                 border: new OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.grey[500])),
                 filled: true,
-                suffixIcon: IconButton(
-                    icon: Icon(Icons.keyboard_arrow_down,
-                        size: 30.0, color: Colors.black),
-                    onPressed: () {
-                      SystemChannels.textInput.invokeMethod('TextInput.hide');
-                      state.setState(() {
-                        state._showdropdown = !state._showdropdown;
-                      });
-                    }),
+                suffixIcon: Icon(
+                    state._showdropdown
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    size: 30.0,
+                    color: Colors.black),
                 fillColor: Colors.white,
                 hintStyle: hintStyle,
                 labelStyle: labelStyle,
