@@ -3,45 +3,8 @@ library dropdownfield;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-///DropDownField has customized autocomplete text field functionality
-///
-///Parameters
-///
-///value - dynamic - Optional value to be set into the Dropdown field by default when this field renders
-///
-///icon - Widget - Optional icon to be shown to the left of the Dropdown field
-///
-///hintText - String - Optional Hint text to be shown
-///
-///hintStyle - TextStyle - Optional styling for Hint text. Default is normal, gray colored font of size 18.0
-///
-///labelText - String - Optional Label text to be shown
-///
-///labelStyle - TextStyle - Optional styling for Label text. Default is normal, gray colored font of size 18.0
-///
-///required - bool - True will validate that this field has a non-null/non-empty value. Default is false
-///
-///enabled - bool - False will disable the field. You can unset this to use the Dropdown field as a read only form field. Default is true
-///
-///items - List<dynamic> - List of items to be shown as suggestions in the Dropdown. Typically a list of String values.
-///You can supply a static list of values or pass in a dynamic list using a FutureBuilder
-///
-///textStyle - TextStyle - Optional styling for text shown in the Dropdown. Default is bold, black colored font of size 14.0
-///
-///inputFormatters - List<TextInputFormatter> - Optional list of TextInputFormatter to format the text field
-///
-///setter - FormFieldSetter<dynamic> - Optional implementation of your setter method. Will be called internally by Form.save() method
-///
-///onValueChanged - ValueChanged<dynamic> - Optional implementation of code that needs to be executed when the value in the Dropdown
-///field is changed
-///
-///strict - bool - True will validate if the value in this dropdown is amongst those suggestions listed.
-///False will let user type in new values as well. Default is true
-///
-///itemsVisibleInDropdown - int - Number of suggestions to be shown by default in the Dropdown after which the list scrolls. Defaults to 3
 class DropDownField extends FormField<String> {
   final dynamic value;
-  final Widget icon;
   final String hintText;
   final TextStyle hintStyle;
   final String labelText;
@@ -55,19 +18,15 @@ class DropDownField extends FormField<String> {
   final ValueChanged<dynamic> onValueChanged;
   final bool strict;
   final int itemsVisibleInDropdown;
-
-  /// Controls the text being edited.
-  ///
-  /// If null, this widget will create its own [TextEditingController] and
-  /// initialize its [TextEditingController.text] with [initialValue].
   final TextEditingController controller;
+  final String iconText;
 
   DropDownField(
       {Key key,
       this.controller,
       this.value,
+      this.iconText,
       this.required: false,
-      this.icon,
       this.hintText,
       this.hintStyle: const TextStyle(
           fontWeight: FontWeight.normal, color: Colors.grey, fontSize: 18.0),
@@ -89,14 +48,14 @@ class DropDownField extends FormField<String> {
           initialValue: controller != null ? controller.text : (value ?? ''),
           onSaved: setter,
           builder: (FormFieldState<String> field) {
-            final DropDownFieldState state = field;
+            final CustomizedDropDownState state = field;
             final ScrollController _scrollController = ScrollController();
             final InputDecoration effectiveDecoration = InputDecoration(
-                border: InputBorder.none,
+                border: new OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey[500])),
                 filled: true,
-                icon: icon,
                 suffixIcon: IconButton(
-                    icon: Icon(Icons.arrow_drop_down,
+                    icon: Icon(Icons.keyboard_arrow_down,
                         size: 30.0, color: Colors.black),
                     onPressed: () {
                       SystemChannels.textInput.invokeMethod('TextInput.hide');
@@ -104,6 +63,7 @@ class DropDownField extends FormField<String> {
                         state._showdropdown = !state._showdropdown;
                       });
                     }),
+                fillColor: Colors.white,
                 hintStyle: hintStyle,
                 labelStyle: labelStyle,
                 hintText: hintText,
@@ -114,50 +74,59 @@ class DropDownField extends FormField<String> {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Expanded(
-                      child: TextFormField(
-                        autovalidate: true,
-                        controller: state._effectiveController,
-                        decoration: effectiveDecoration.copyWith(
-                            errorText: field.errorText),
-                        style: textStyle,
-                        textAlign: TextAlign.start,
-                        autofocus: false,
-                        obscureText: false,
-                        maxLengthEnforced: true,
-                        maxLines: 1,
-                        validator: (String newValue) {
-                          if (required) {
-                            if (newValue == null || newValue.isEmpty)
-                              return 'This field cannot be empty!';
-                          }
-
-                          //Items null check added since there could be an initial brief period of time
-                          //when the dropdown items will not have been loaded
-                          if (items != null) {
-                            if (strict &&
-                                newValue.isNotEmpty &&
-                                !items.contains(newValue))
-                              return 'Invalid value in this field!';
-                          }
-                        },
-                        onSaved: setter,
-                        enabled: enabled,
-                        inputFormatters: inputFormatters,
+                    new Theme(
+                      data: new ThemeData(
+                          primaryColor: Colors.grey[500],
+                          primaryColorDark: Colors.grey),
+                      child: Expanded(
+                        child: TextFormField(
+                          autovalidate: true,
+                          onTap: () {
+                            // add this line when needed SystemChannels.textInput.invokeMethod('TextInput.hide');
+                            state.setState(() {
+                              state._showdropdown = !state._showdropdown;
+                            });
+                          },
+                          controller: state._effectiveController,
+                          decoration: effectiveDecoration.copyWith(
+                              errorText: field.errorText),
+                          style: textStyle,
+                          textAlign: TextAlign.start,
+                          autofocus: false,
+                          showCursor: false,
+                          readOnly: true,
+                          // to make the text disabled use focusNode: new AlwaysDisabledFocusNode()
+                          obscureText: false,
+                          maxLengthEnforced: true,
+                          maxLines: 1,
+                          onSaved: setter,
+                          enabled: enabled,
+                          inputFormatters: inputFormatters,
+                        ),
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () {
-                        if (!enabled) return;
-                        state.clearValue();
-                      },
-                    )
+                    if (iconText != null)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              bottomRight: Radius.circular(10.0)),
+                        ),
+                        margin: EdgeInsets.only(left: 2),
+                        padding: EdgeInsets.only(
+                            left: 15, right: 15, top: 20, bottom: 20),
+                        child: Text(
+                          iconText,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
                   ],
                 ),
                 !state._showdropdown
                     ? Container()
                     : Container(
+                        color: Colors.white,
                         alignment: Alignment.topCenter,
                         height: itemsVisibleInDropdown *
                             48.0, //limit to default 3 items in dropdownlist view and then remaining scrolls
@@ -181,15 +150,12 @@ class DropDownField extends FormField<String> {
         );
 
   @override
-  DropDownFieldState createState() => DropDownFieldState();
+  CustomizedDropDownState createState() => CustomizedDropDownState();
 }
 
-class DropDownFieldState extends FormFieldState<String> {
+class CustomizedDropDownState extends FormFieldState<String> {
   TextEditingController _controller;
   bool _showdropdown = false;
-  bool _isSearching = true;
-  String _searchText = "";
-
   @override
   DropDownField get widget => super.widget;
   TextEditingController get _effectiveController =>
@@ -198,12 +164,6 @@ class DropDownFieldState extends FormFieldState<String> {
   List<String> get _items => widget.items;
 
   void toggleDropDownVisibility() {}
-
-  void clearValue() {
-    setState(() {
-      _effectiveController.text = '';
-    });
-  }
 
   @override
   void didUpdateWidget(DropDownField oldWidget) {
@@ -231,35 +191,23 @@ class DropDownFieldState extends FormFieldState<String> {
   @override
   void initState() {
     super.initState();
-    _isSearching = false;
     if (widget.controller == null) {
       _controller = TextEditingController(text: widget.initialValue);
     }
-
     _effectiveController.addListener(_handleControllerChanged);
-
-    _searchText = _effectiveController.text;
   }
 
   @override
   void reset() {
     super.reset();
-    setState(() {
-      _effectiveController.text = widget.initialValue;
-    });
+    setState(() {});
   }
 
   List<ListTile> _getChildren(List<String> items) {
     List<ListTile> childItems = List();
     for (var item in items) {
-      if (_searchText.isNotEmpty) {
-        if (item.toUpperCase().contains(_searchText.toUpperCase()))
-          childItems.add(_getListTile(item));
-      } else {
-        childItems.add(_getListTile(item));
-      }
+      childItems.add(_getListTile(item));
     }
-    _isSearching ? childItems : List();
     return childItems;
   }
 
@@ -274,7 +222,6 @@ class DropDownFieldState extends FormFieldState<String> {
           _effectiveController.text = text;
           _handleControllerChanged();
           _showdropdown = false;
-          _isSearching = false;
           if (widget.onValueChanged != null) widget.onValueChanged(text);
         });
       },
@@ -292,17 +239,16 @@ class DropDownFieldState extends FormFieldState<String> {
     if (_effectiveController.text != value)
       didChange(_effectiveController.text);
 
-    if (_effectiveController.text.isEmpty) {
+    if (_effectiveController.text.isNotEmpty) {
       setState(() {
-        _isSearching = false;
-        _searchText = "";
-      });
-    } else {
-      setState(() {
-        _isSearching = true;
-        _searchText = _effectiveController.text;
         _showdropdown = true;
       });
     }
   }
 }
+
+class AlwaysDisabledFocusNode extends FocusNode {
+  @override
+  bool get hasFocus => false;
+}
+
